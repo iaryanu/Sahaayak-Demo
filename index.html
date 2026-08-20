@@ -149,6 +149,10 @@ button{font-family:inherit;cursor:pointer;}
 }
 .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--navy-soft);border-color:var(--navy);}
 .field textarea{resize:vertical;min-height:90px;}
+.field label .req{color:var(--red);}
+.field.error input, .field.error textarea{border-color:var(--red);background:var(--red-soft);}
+.field .err-msg{display:none;font-size:11.5px;color:var(--red);margin-top:5px;font-weight:600;}
+.field.error .err-msg{display:block;}
 .hint-box{
   background:var(--amber-soft);border:1px solid #EBD9AF;border-radius:9px;padding:10px 12px;font-size:12px;color:#7A5A12;margin-top:14px;
 }
@@ -287,6 +291,7 @@ button{font-family:inherit;cursor:pointer;}
     </div>
   </div>
   <div class="top-actions">
+    <div class="pill mono" id="liveClock"><span class="dot"></span> --</div>
     <div class="pill" id="modePill"><span class="dot"></span> Portal selection</div>
     <button class="btn-ghost" onclick="go('portal')">Home</button>
   </div>
@@ -349,15 +354,27 @@ button{font-family:inherit;cursor:pointer;}
     <button class="back-link" onclick="go('citizenDash')">← My Grievances</button>
     <div class="panel" style="max-width:560px;margin:0 auto;">
       <h2 style="margin-bottom:16px;">Lodge New Grievance</h2>
-      <div class="field"><label>Subject</label><input id="lodgeSubject" placeholder="e.g. Pension application rejected"></div>
-      <div class="field"><label>Description</label><textarea id="lodgeDesc" placeholder="Describe your grievance in detail..."></textarea></div>
+      <div class="field" id="fieldSubject">
+        <label>Subject <span class="req">*</span></label>
+        <input id="lodgeSubject" placeholder="e.g. Pension application rejected">
+        <div class="err-msg">Subject is required.</div>
+      </div>
+      <div class="field" id="fieldDesc">
+        <label>Description <span class="req">*</span></label>
+        <textarea id="lodgeDesc" placeholder="Describe your grievance in detail..."></textarea>
+        <div class="err-msg">Please describe your grievance in detail.</div>
+      </div>
       <div class="field"><label>Category (auto-detect)</label>
         <select id="lodgeCategory">
           <option>Pension / Social Security</option>
           <option>Ration Card / PDS</option>
           <option>Scholarship</option>
           <option>Land Records</option>
-          <option>Other</option>
+          <option>Passport / Visa Services</option>
+          <option>Income Tax / GST</option>
+          <option>Banking / Financial Services</option>
+          <option>Electricity / Utility Services</option>
+          <option>Municipal / Sanitation</option>
         </select>
       </div>
       <div class="field"><label>Attachment (optional)</label><input type="text" placeholder="pension_docs.pdf" disabled style="background:var(--cream);color:var(--slate);"></div>
@@ -580,10 +597,46 @@ const officerQueue = [
   {id:'CPG-29481', subject:'Ration Card Issue', priority:'medium', time:'5 min ago', citizen:'Meera Nair', date:'13 Aug 2026', category:'Ration Card / PDS',
    desc:'Ration card application pending after field verification for over three weeks with no update.'},
   {id:'CPG-29480', subject:'Scholarship Delay', priority:'high', time:'15 min ago', citizen:'Rohit Sharma', date:'12 Aug 2026', category:'Scholarship',
-   desc:'Scholarship amount approved in the portal but not yet disbursed for the current academic year.'}
+   desc:'Scholarship amount approved in the portal but not yet disbursed for the current academic year.'},
+  {id:'CPG-29479', subject:'Mutation Entry Delay', priority:'medium', time:'22 min ago', citizen:'Suresh Patil', date:'12 Aug 2026', category:'Land Records',
+   desc:'Mutation entry has not been updated in revenue records even though the sale deed was registered over a month ago.'},
+  {id:'CPG-29478', subject:'Passport Renewal Delay', priority:'high', time:'34 min ago', citizen:'Fatima Sheikh', date:'12 Aug 2026', category:'Passport / Visa Services',
+   desc:'My passport renewal is stuck at the police verification stage and my travel date is approaching in two weeks.'},
+  {id:'CPG-29477', subject:'Tax Refund Delay', priority:'medium', time:'48 min ago', citizen:'Karan Malhotra', date:'11 Aug 2026', category:'Income Tax / GST',
+   desc:'My income tax refund was approved on the portal three weeks ago but has still not been credited to my account.'},
+  {id:'CPG-29476', subject:'Account Freeze / KYC Issue', priority:'high', time:'1 hr ago', citizen:'Priya Iyer', date:'11 Aug 2026', category:'Banking / Financial Services',
+   desc:'My savings account has been frozen pending KYC update and I am unable to withdraw funds for daily expenses.'},
+  {id:'CPG-29475', subject:'Billing Discrepancy', priority:'medium', time:'1 hr ago', citizen:'Devendra Rao', date:'11 Aug 2026', category:'Electricity / Utility Services',
+   desc:'I received an unusually inflated electricity bill this month despite no change in household usage, and now a disconnection notice.'},
+  {id:'CPG-29474', subject:'Garbage Collection / Sanitation Complaint', priority:'low', time:'2 hr ago', citizen:'Anjali Verma', date:'10 Aug 2026', category:'Municipal / Sanitation',
+   desc:'Garbage has not been collected in our locality for over a week, causing a public health concern.'}
 ];
 
 let currentGrievance = null;
+
+/* ---------------- real-time clock & date helpers ---------------- */
+function formatDate(d){
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+}
+function formatTime(d){
+  return d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
+}
+function nowDateStr(){ return formatDate(new Date()); }
+function tickClock(){
+  const el = document.getElementById('liveClock');
+  if(!el) return;
+  const now = new Date();
+  el.innerHTML = '<span class="dot"></span> ' + formatDate(now) + ' · ' + formatTime(now);
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+document.addEventListener('DOMContentLoaded', function(){
+  const subjectEl = document.getElementById('lodgeSubject');
+  const descEl = document.getElementById('lodgeDesc');
+  if(subjectEl) subjectEl.addEventListener('input', ()=>{ if(subjectEl.value.trim()!=='') document.getElementById('fieldSubject').classList.remove('error'); });
+  if(descEl) descEl.addEventListener('input', ()=>{ if(descEl.value.trim()!=='') document.getElementById('fieldDesc').classList.remove('error'); });
+});
 
 /* ---------------- navigation ---------------- */
 function go(screen){
@@ -619,16 +672,32 @@ function renderCitizenList(){
 }
 
 function submitGrievance(){
-  const subject = document.getElementById('lodgeSubject').value.trim() || 'Untitled Grievance';
-  const desc = document.getElementById('lodgeDesc').value.trim() || 'No description provided.';
+  const subjectEl = document.getElementById('lodgeSubject');
+  const descEl = document.getElementById('lodgeDesc');
+  const subject = subjectEl.value.trim();
+  const desc = descEl.value.trim();
+
+  const fieldSubject = document.getElementById('fieldSubject');
+  const fieldDesc = document.getElementById('fieldDesc');
+  fieldSubject.classList.toggle('error', subject === '');
+  fieldDesc.classList.toggle('error', desc === '');
+
+  if(subject === '' || desc === ''){
+    (subject === '' ? subjectEl : descEl).focus();
+    return; // block submission until both required fields are filled
+  }
+
   const category = document.getElementById('lodgeCategory').value;
   grievCounter++;
   const id = 'CPG-'+grievCounter;
-  citizenGrievances.unshift({id, subject, status:'examining', date:'14 Aug 2026', desc, category});
-  officerQueue.unshift({id, subject, priority:'medium', time:'Just now', citizen:document.getElementById('citName')?.value || 'Aryan', date:'14 Aug 2026', category, desc});
+  const today = nowDateStr();
+  citizenGrievances.unshift({id, subject, status:'examining', date:today, desc, category});
+  officerQueue.unshift({id, subject, priority:'medium', time:'Just now', citizen:document.getElementById('citName')?.value || 'Aryan', date:today, category, desc});
   document.getElementById('newGrievId').textContent = id;
-  document.getElementById('lodgeSubject').value='';
-  document.getElementById('lodgeDesc').value='';
+  subjectEl.value='';
+  descEl.value='';
+  fieldSubject.classList.remove('error');
+  fieldDesc.classList.remove('error');
   go('citizenSubmitted');
 }
 
@@ -783,6 +852,132 @@ function analysisFor(g){
       next:'Verify the beneficiary bank account against the treasury disbursal system and re-trigger payment.',
       officerNote:'Bank details should be re-validated with the treasury and disbursal re-triggered.',
       citations:['National Scholarship Portal Guidelines, 2022','PFMS Disbursal SOP — Sec. 4.2']
+    },
+    'Land Records': {
+      topic:'Land Records', sub:'Mutation Entry Delay', area:'Revenue / Land Records',
+      department:'Tehsildar Office / Revenue Department', routingConfidence:0.88,
+      sentiment:'Frustrated — mutation pending despite a registered sale deed',
+      urgency:'Medium — affects property tax assessment and loan eligibility',
+      slaEstimate:'7–10 working days',
+      entities:['Sale deed','Mutation entry','Revenue records'],
+      keywords:['mutation pending','sale deed','registered','not updated'],
+      confidence:0.90,
+      casesScanned:1284,
+      cases:[
+        {sim:0.92, title:'Mutation not updated after registration', res:'Revenue record correction', officer:'GRO-0512', days:8, ref:'CPG-24020'},
+        {sim:0.85, title:'Land record showing previous owner', res:'Tehsildar-level correction', officer:'GRO-0765', days:9, ref:'CPG-23890'},
+        {sim:0.79, title:'Boundary dispute delaying mutation', res:'Joint field verification', officer:'GRO-0699', days:12, ref:'CPG-22110'}
+      ],
+      successRate:'76% resolved without escalation',
+      action:'Revenue record correction',
+      next:'Direct the Tehsildar office to update mutation records against the registered sale deed.',
+      officerNote:'Mutation entry to be updated by the Tehsildar office based on the registered sale deed.',
+      citations:['Land Revenue Code — Sec. 150 (Mutation)','State Registration Act, 1908 — Sec. 17']
+    },
+    'Passport / Visa Services': {
+      topic:'Passport / Visa Services', sub:'Passport Renewal Delay', area:'External Affairs / Passport Seva',
+      department:'Regional Passport Office', routingConfidence:0.93,
+      sentiment:'Anxious — upcoming travel date at risk',
+      urgency:'High — international travel affected',
+      slaEstimate:'2–3 working days (post police verification)',
+      entities:['Passport application','Police verification','Regional Passport Office'],
+      keywords:['renewal delay','police verification','travel date','pending'],
+      confidence:0.92,
+      casesScanned:1284,
+      cases:[
+        {sim:0.95, title:'Passport stuck at police verification stage', res:'Verification status escalation', officer:'GRO-0341', days:2, ref:'CPG-29011'},
+        {sim:0.88, title:'Renewal delayed due to address mismatch', res:'Address proof re-submission', officer:'GRO-0402', days:3, ref:'CPG-28650'},
+        {sim:0.81, title:'Passport printing delay', res:'Regional office follow-up', officer:'GRO-0288', days:2, ref:'CPG-27990'}
+      ],
+      successRate:'90% resolved without escalation',
+      action:'Verification status escalation',
+      next:'Escalate the pending police verification status with the local police station via the Passport Seva portal.',
+      officerNote:'Police verification status to be escalated; applicant to be informed of expected completion.',
+      citations:['Passports Act, 1967 — Sec. 6','Passport Seva SOP — Verification Module']
+    },
+    'Income Tax / GST': {
+      topic:'Income Tax / GST', sub:'Tax Refund Delay', area:'Central Board of Direct Taxes / GST',
+      department:'Income Tax / GST Assessing Office', routingConfidence:0.86,
+      sentiment:'Frustrated — refund overdue beyond the standard timeline',
+      urgency:'Medium — financial impact on the filer',
+      slaEstimate:'10–15 working days',
+      entities:['Tax refund','ITR filing','Assessing officer'],
+      keywords:['refund pending','ITR processed','no credit','overdue'],
+      confidence:0.87,
+      casesScanned:1284,
+      cases:[
+        {sim:0.90, title:'Refund approved but not credited', res:'Bank account validation on portal', officer:'GRO-0219', days:9, ref:'CPG-25520'},
+        {sim:0.83, title:'Refund stuck at processing stage', res:'Assessing officer follow-up', officer:'GRO-0177', days:12, ref:'CPG-24980'},
+        {sim:0.77, title:'Mismatch between ITR and Form 26AS', res:'Rectification request filed', officer:'GRO-0305', days:14, ref:'CPG-23410'}
+      ],
+      successRate:'79% resolved without escalation',
+      action:'Bank account validation on portal',
+      next:'Verify the pre-validated bank account on the income tax e-filing portal and coordinate with CPC for refund release.',
+      officerNote:'Bank account to be re-validated on the e-filing portal; refund release to be tracked with CPC.',
+      citations:['Income Tax Act, 1961 — Sec. 143(1)','CPC Refund Processing Guidelines']
+    },
+    'Banking / Financial Services': {
+      topic:'Banking / Financial Services', sub:'Account Freeze / KYC Issue', area:'Banking Ombudsman / Public Sector Bank',
+      department:'Bank Branch / Regional Office', routingConfidence:0.84,
+      sentiment:'Distressed — unable to access funds',
+      urgency:'High — account access blocked',
+      slaEstimate:'3–5 working days',
+      entities:['Bank account','KYC update','Branch office'],
+      keywords:['account frozen','kyc pending','unable to withdraw','branch visit'],
+      confidence:0.88,
+      casesScanned:1284,
+      cases:[
+        {sim:0.91, title:'Account frozen pending KYC update', res:'Branch-level KYC re-verification', officer:'GRO-0455', days:4, ref:'CPG-26210'},
+        {sim:0.85, title:'Funds blocked after fraud alert', res:'Regional office review', officer:'GRO-0388', days:5, ref:'CPG-25770'},
+        {sim:0.78, title:'Joint account KYC mismatch', res:'Document re-submission at branch', officer:'GRO-0510', days:3, ref:'CPG-24890'}
+      ],
+      successRate:'83% resolved without escalation',
+      action:'Branch-level KYC re-verification',
+      next:'Direct the branch to complete KYC re-verification and unfreeze the account.',
+      officerNote:'Branch to complete pending KYC verification and restore full account access.',
+      citations:['RBI Master Direction — KYC, 2016','Banking Ombudsman Scheme, 2006']
+    },
+    'Electricity / Utility Services': {
+      topic:'Electricity / Utility Services', sub:'Billing Discrepancy', area:'State Electricity Distribution Company',
+      department:'Electricity Board / DISCOM', routingConfidence:0.89,
+      sentiment:'Annoyed — inflated bill despite normal usage',
+      urgency:'Medium — risk of disconnection if unresolved',
+      slaEstimate:'5–7 working days',
+      entities:['Electricity bill','Meter reading','DISCOM'],
+      keywords:['inflated bill','meter reading','disconnection notice','overcharged'],
+      confidence:0.90,
+      casesScanned:1284,
+      cases:[
+        {sim:0.93, title:'Bill inflated due to faulty meter', res:'Meter replacement and bill correction', officer:'GRO-0630', days:6, ref:'CPG-27210'},
+        {sim:0.86, title:'Estimated billing not reconciled', res:'Actual reading reconciliation', officer:'GRO-0581', days:5, ref:'CPG-26840'},
+        {sim:0.80, title:'Duplicate billing for the same connection', res:'Billing record correction', officer:'GRO-0499', days:4, ref:'CPG-26010'}
+      ],
+      successRate:'85% resolved without escalation',
+      action:'Meter replacement and bill correction',
+      next:'Schedule a field inspection to verify the meter and reconcile the billing amount.',
+      officerNote:'Meter to be inspected/replaced if faulty; billing to be corrected based on actual reading.',
+      citations:['Electricity Act, 2003 — Sec. 55','State Electricity Regulatory Commission — Supply Code']
+    },
+    'Municipal / Sanitation': {
+      topic:'Municipal / Sanitation', sub:'Garbage Collection / Sanitation Complaint', area:'Urban Local Body / Municipal Corporation',
+      department:'Municipal Corporation — Sanitation Wing', routingConfidence:0.85,
+      sentiment:'Frustrated — recurring civic issue affecting the neighbourhood',
+      urgency:'Medium — public health concern if unresolved',
+      slaEstimate:'2–4 working days',
+      entities:['Garbage collection','Ward office','Sanitation staff'],
+      keywords:['garbage not collected','ward office','recurring complaint','public health'],
+      confidence:0.86,
+      casesScanned:1284,
+      cases:[
+        {sim:0.89, title:'Irregular garbage collection in locality', res:'Route rescheduling by ward office', officer:'GRO-0722', days:3, ref:'CPG-25990'},
+        {sim:0.82, title:'Overflowing community bin not cleared', res:'Special sanitation drive', officer:'GRO-0655', days:2, ref:'CPG-25410'},
+        {sim:0.76, title:'Drainage blockage causing waterlogging', res:'Municipal drain clearance', officer:'GRO-0801', days:4, ref:'CPG-24710'}
+      ],
+      successRate:'80% resolved without escalation',
+      action:'Route rescheduling by ward office',
+      next:'Direct the ward sanitation office to restore the regular collection schedule and inspect the reported site.',
+      officerNote:'Ward office to restore the regular collection schedule and confirm site inspection.',
+      citations:['Solid Waste Management Rules, 2016','Municipal Corporation Act — Sanitation Provisions']
     }
   };
   return lib[g.category] || lib['Pension / Social Security'];
@@ -870,7 +1065,7 @@ function disposeGrievance(){
   const cg = citizenGrievances.find(g=>g.id===currentGrievance.id);
   if(cg){
     cg.status='resolved';
-    cg.resolution = {action:currentGrievance._ai.action, by:'GRO-1024', on:'14 Aug 2026', time:'1 day', note:document.getElementById('offResponse').value};
+    cg.resolution = {action:currentGrievance._ai.action, by:'GRO-1024', on:nowDateStr(), time:'1 day', note:document.getElementById('offResponse').value};
   }
   document.getElementById('ofStepAction').classList.add('hidden');
   document.getElementById('ofStepDone').classList.remove('hidden');
@@ -886,25 +1081,27 @@ function renderAdminChart(){
   topicChartInstance = new Chart(ctx, {
     type:'doughnut',
     data:{
-      labels:['Pension','Scholarship','Ration Card','Land Records','Others'],
+      labels:['Pension','Scholarship','Ration Card','Land Records','Passport/Visa','Income Tax/GST','Banking','Electricity','Municipal'],
       datasets:[{
-        data:[38,26,18,10,8],
-        backgroundColor:['#0B2447','#E07A1F','#1B7A4C','#647087','#C9861A'],
+        data:[22,16,13,11,9,9,8,7,5],
+        backgroundColor:['#0B2447','#E07A1F','#1B7A4C','#647087','#7A5C99','#2E86AB','#B23A2E','#C9861A','#4C7A5E'],
         borderColor:'#F6F3EA', borderWidth:3
       }]
     },
     options:{
-      cutout:'68%',
+      cutout:'62%',
       plugins:{legend:{display:false}},
       maintainAspectRatio:false
     }
   });
   const issues = [
-    ['Pension Rejection / Documents','18%','#0B2447'],
-    ['Scholarship Amount Delay','14%','#E07A1F'],
-    ['Ration Card Not Issued','12%','#1B7A4C'],
-    ['Land Record Correction','10%','#647087'],
-    ['Others','46%','#C9861A']
+    ['Pension Rejection / Documents','15%','#0B2447'],
+    ['Scholarship Amount Delay','12%','#E07A1F'],
+    ['Ration Card Not Issued','10%','#1B7A4C'],
+    ['Land Record Correction','8%','#647087'],
+    ['Passport Verification Delay','7%','#7A5C99'],
+    ['Account Freeze / KYC','6%','#B23A2E'],
+    ['Others','42%','#C9861A']
   ];
   document.getElementById('issueList').innerHTML = issues.map(i=>`
     <div class="legend-row"><span><span class="sw" style="background:${i[2]}"></span>${i[0]}</span><b>${i[1]}</b></div>`).join('');
